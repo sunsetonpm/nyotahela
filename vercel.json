@@ -5,10 +5,10 @@
     }
   },
   "routes": [
-    { "src": "/(.*)", "dest": "/api/verify-payment.php" },
-    { "src": "/(.*)", "dest": "/api/initiate-payment.php" },
-    { "src": "/(.*)", "dest": "/api/normalize-phone.php" },
-    { "src": "/(.*)", "dest": "/api/callback.php" },
+    { "src": "/verify", "dest": "/api/verify-payment.php" },
+    { "src": "/pay", "dest": "/api/initiate-payment.php" },
+    { "src": "/normalizephone", "dest": "/api/normalize-phone.php" },
+    { "src": "/callback", "dest": "/api/callback.php" },
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }
