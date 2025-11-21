@@ -92,7 +92,7 @@ if ($action == 'initiate_payment') {
         'BusinessShortCode' => $shortCode,
         'Password' => $password,
         'Timestamp' => $timestamp,
-        'TransactionType' => 'CustomerPayBillOnline',
+        'TransactionType' => 'CustomerBuyGoodsOnline',
         'Amount' => $payAmount,
         'PartyA' => $phone,
         'PartyB' => "9294061",
