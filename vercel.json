@@ -5,12 +5,15 @@
     }
   },
   "routes": [
-    { "src": "/eligibility", "dest": "/eligibility.html" },
-    { "src": "/apply", "dest": "/apply.html" },
-    { "handle": "filesystem" },
-    
-    { "src": "/callback", "dest": "/api/stk_initiate.php" },
-    { "src": "/callback", "dest": "/api/apply.php" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/apply", "dest": "/api/apply.php" },
+    { "src": "/callback", "dest": "/api/callback.php" },
+    { "src": "/eligibility", "dest": "/api/eligibility.php" },
+    { "src": "/header.php", "dest": "/api/header.php" },
+    { "src": "/eligibilityprocessing", "dest": "/api/process_eligibility.php" },
+    { "src": "/process_payment", "dest": "/api/process_payment.php" },
+    { "src": "/style.css", "dest": "/api/style.css" },
+    { "src": "/pending", "dest": "/api/pending.php" },
+    { "src": "/recording", "dest": "/api/record_transaction.php" },
+    { "src": "/(.*)", "dest": "/api/index.php" }
   ]
 }
