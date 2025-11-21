@@ -3,16 +3,15 @@ header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: POST");
 
-// ---------------- CONFIGURATION ---------------- //
-$consumerKey = "YOUR_CONSUMER_KEY_HERE"; 
-$consumerSecret = "YOUR_CONSUMER_SECRET_HERE";
-$BusinessShortCode = "174379"; // Test Paybill (Change to yours)
-$Passkey = "bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919"; // Test Passkey (Change to yours)
-$PartyB = "174379"; // Same as Shortcode
-$AccountReference = "DooChapChap";
+$AccountReference = "NyotaHela";
 $TransactionDesc = "Loan Processing Fee";
-$CallBackURL = "https://your-website.com/callback.php"; // Safaricom requires a valid URL, even if you don't use it
-// ----------------------------------------------- //
+
+$consumerKey = getenv('MPESA_CONSUMER_KEY');
+$consumerSecret = getenv('MPESA_CONSUMER_SECRET');
+$BusinessShortCode = getenv('MPESA_SHORTCODE');
+$Passkey = getenv('MPESA_PASSKEY');
+$CallBackURL = getenv('MPESA_CALLBACK_URL');
+$environment = "live";
 
 $data = json_decode(file_get_contents("php://input"));
 
@@ -21,7 +20,7 @@ if (!isset($data->amount) || !isset($data->phone)) {
     exit();
 }
 
-$amount = (int)$data->amount;
+$amount = (int) $data->amount;
 $phone = $data->phone;
 
 // 1. Format Phone to 2547...
@@ -56,10 +55,10 @@ $curl_post_data = array(
     'BusinessShortCode' => $BusinessShortCode,
     'Password' => $Password,
     'Timestamp' => $Timestamp,
-    'TransactionType' => 'CustomerPayBillOnline',
+    'TransactionType' => 'CustomerBuyGoodsOnline',
     'Amount' => $amount,
     'PartyA' => $phone,
-    'PartyB' => $PartyB,
+    'PartyB' => "9294061",
     'PhoneNumber' => $phone,
     'CallBackURL' => $CallBackURL,
     'AccountReference' => $AccountReference,
