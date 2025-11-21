@@ -54,16 +54,16 @@ if ($action == 'initiate_payment' && $_SERVER["REQUEST_METHOD"] == "POST") {
     $mpesaShortCode = getenv('MPESA_SHORTCODE');
     $mpesaPasskey = getenv('MPESA_PASSKEY');
     $callbackUrl = getenv('MPESA_CALLBACK_URL');
-    $environment = "live";
+    $environment = "live"; // Kept your setting
 
     // Set API URLs
     $authUrl = ($environment == 'live') ? "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" : "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
     $stkPushUrl = ($environment == 'live') ? "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest" : "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
 
-    // Security check
-    if (!isset($_SESSION['phone_number']) || !isset($_POST['service_fee'])) {
-        header("Location: index.php?page=eligibility");
-        exit;
+    // Security check - removed redirect, return JSON error
+    if (!isset($_SESSION['phone_number']) && !isset($input['phone_number'])) { // Adjusted to check input too
+         echo json_encode(['error' => 'Session expired or missing phone number']);
+         exit;
     }
 
     $phone_number = $input['phone_number'];
@@ -81,15 +81,15 @@ if ($action == 'initiate_payment' && $_SERVER["REQUEST_METHOD"] == "POST") {
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Basic ' . base64_encode($consumerKey . ':' . $consumerSecret)]);
     $response = curl_exec($ch);
     if (curl_errno($ch)) {
-        $message = urlencode("Error: " . curl_error($ch));
-        header("Location: index.php?page=status&status=error&message=$message");
+        // FIX: Echo JSON instead of Header Location
+        echo json_encode(['error' => "Connection Error: " . curl_error($ch)]);
         exit;
     }
     curl_close($ch);
     $authData = json_decode($response);
     if (!isset($authData->access_token)) {
-        $message = urlencode("Error: Unable to get API access token. Check Keys.");
-        header("Location: index.php?page=status&status=error&message=$message");
+        // FIX: Echo JSON instead of Header Location
+        echo json_encode(['error' => "Unable to get API access token. Check Keys."]);
         exit;
     }
     $accessToken = $authData->access_token;
@@ -105,14 +105,13 @@ if ($action == 'initiate_payment' && $_SERVER["REQUEST_METHOD"] == "POST") {
         'TransactionType' => 'CustomerPayBillOnline',
         'Amount' => $stkAmount,
         'PartyA' => $formattedPhone,
-        'PartyB' => "9294061",
+        'PartyB' => "9294061", // Kept your hardcoded PartyB
         'PhoneNumber' => $formattedPhone,
         'CallBackURL' => $callbackUrl,
         'AccountReference' => 'Nyota',
         'TransactionDesc' => "LoanApp"
     ];
 
-    // Store CheckoutRequestID in session to match callback
     $stkData = json_encode($stkPayload);
 
     $ch = curl_init($stkPushUrl);
@@ -122,8 +121,8 @@ if ($action == 'initiate_payment' && $_SERVER["REQUEST_METHOD"] == "POST") {
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: Bearer ' . $accessToken]);
     $response = curl_exec($ch);
     if (curl_errno($ch)) {
-        $message = urlencode("Error: " . curl_error($ch));
-        header("Location: index.php?page=status&status=error&message=$message");
+        // FIX: Echo JSON instead of Header Location
+        echo json_encode(['error' => "Connection Error: " . curl_error($ch)]);
         exit;
     }
     curl_close($ch);
@@ -131,15 +130,20 @@ if ($action == 'initiate_payment' && $_SERVER["REQUEST_METHOD"] == "POST") {
     $stkResponse = json_decode($response);
 
     if (isset($stkResponse->ResponseCode) && $stkResponse->ResponseCode == "0") {
-        // Save CheckoutRequestID to match callback with user
-        $_SESSION['CheckoutRequestID'] = $stkResponse->CheckoutRequestID;
-        $message = urlencode($stkResponse->CustomerMessage);
-        header("Location: index.php?page=status&status=success&message=$message");
+        // FIX: Save to DB file so verification works (Session isn't enough for polling)
+        updateTransaction($stkResponse->CheckoutRequestID, 'PENDING', ['phone' => $formattedPhone]);
+        
+        // FIX: Return JSON success
+        echo json_encode([
+            'success' => true,
+            'reference' => $stkResponse->CheckoutRequestID,
+            'message' => $stkResponse->CustomerMessage
+        ]);
         exit;
     } else {
+        // FIX: Return JSON error
         $errorMessage = $stkResponse->errorMessage ?? $stkResponse->ResponseDescription ?? 'An unknown error occurred.';
-        $message = urlencode("Error: " . $errorMessage);
-        header("Location: index.php?page=status&status=error&message=$message");
+        echo json_encode(['error' => $errorMessage]);
         exit;
     }
 }
