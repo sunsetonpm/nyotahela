@@ -46,6 +46,9 @@ if ($action == 'normalize_phone') {
 }
 
 if ($action == 'initiate_payment') {
+    header('Content-Type: application/json');
+    $input = json_decode(file_get_contents('php://input'), true);
+    
     $consumerKey = getenv('MPESA_CONSUMER_KEY');
     $consumerSecret = getenv('MPESA_CONSUMER_SECRET');
     $mpesaShortCode = getenv('MPESA_SHORTCODE');
