@@ -46,86 +46,99 @@ if ($action == 'normalize_phone') {
 }
 
 if ($action == 'initiate_payment') {
-    header('Content-Type: application/json');
-    $input = json_decode(file_get_contents('php://input'), true);
-    
-    $phone = $input['phone_number'];
-    $amount = (int)$input['amount'];
-    
-    // --- MPESA CONFIG ---
     $consumerKey = getenv('MPESA_CONSUMER_KEY');
     $consumerSecret = getenv('MPESA_CONSUMER_SECRET');
-    $shortCode = getenv('MPESA_SHORTCODE');
-    $passkey = getenv('MPESA_PASSKEY');
-    $env = getenv('MPESA_ENVIRONMENT');
-    
-    // Construct Callback URL (Points to THIS file)
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-    $host = $_SERVER['HTTP_HOST'];
-    $callbackUrl = "$protocol://$host" . strtok($_SERVER["REQUEST_URI"], '?') . "?action=callback";
-    
-    if (!empty($_ENV['MPESA_CALLBACK_URL'])) {
-        $callbackUrl = $_ENV['MPESA_CALLBACK_URL'];
-    }
+    $mpesaShortCode = getenv('MPESA_SHORTCODE');
+    $mpesaPasskey = getenv('MPESA_PASSKEY');
+    $callbackUrl = getenv('MPESA_CALLBACK_URL');
+    $environment = "live";
 
-    $url = ($env == 'live') ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
-    
-    // 1. Get Token
-    $credentials = base64_encode($consumerKey . ':' . $consumerSecret);
-    $ch = curl_init($url . '/oauth/v1/generate?grant_type=client_credentials');
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Basic ' . $credentials]);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $response = curl_exec($ch);
-    $token = json_decode($response)->access_token ?? null;
-    
-    if (!$token) {
-        echo json_encode(['error' => 'Failed to get access token']);
+    // Set API URLs
+    $authUrl = ($environment == 'live') ? "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" : "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
+    $stkPushUrl = ($environment == 'live') ? "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest" : "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+
+    // Security check
+    if (!isset($_SESSION['phone_number']) || !isset($_POST['service_fee'])) {
+        header("Location: index.php?page=eligibility");
         exit;
     }
-    
-    // 2. STK Push
+
+    $phone_number = $input['phone_number'];
+    $service_fee = (int)$input['amount'];
+
+    // Reformat phone
+    $formattedPhone = (substr($phone_number, 0, 1) == "0") ? "254" . substr($phone_number, 1) : $phone_number;
+
+    // Use '1' for sandbox testing, real amount for live
+    $stkAmount = ($environment == 'live') ? $service_fee : 1;
+
+    // Get Access Token
+    $ch = curl_init($authUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Basic ' . base64_encode($consumerKey . ':' . $consumerSecret)]);
+    $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+        $message = urlencode("Error: " . curl_error($ch));
+        header("Location: index.php?page=status&status=error&message=$message");
+        exit;
+    }
+    curl_close($ch);
+    $authData = json_decode($response);
+    if (!isset($authData->access_token)) {
+        $message = urlencode("Error: Unable to get API access token. Check Keys.");
+        header("Location: index.php?page=status&status=error&message=$message");
+        exit;
+    }
+    $accessToken = $authData->access_token;
+
+    // Initiate STK Push
     $timestamp = date('YmdHis');
-    $password = base64_encode($shortCode . $passkey . $timestamp);
-    $payAmount = ($env == 'live') ? $amount : 1;
-    
+    $password = base64_encode($mpesaShortCode . $mpesaPasskey . $timestamp);
+
     $stkPayload = [
-        'BusinessShortCode' => $shortCode,
+        'BusinessShortCode' => $mpesaShortCode,
         'Password' => $password,
         'Timestamp' => $timestamp,
-        'TransactionType' => 'CustomerBuyGoodsOnline',
-        'Amount' => $payAmount,
-        'PartyA' => $phone,
+        'TransactionType' => 'CustomerPayBillOnline',
+        'Amount' => $stkAmount,
+        'PartyA' => $formattedPhone,
         'PartyB' => "9294061",
-        'PhoneNumber' => $phone,
-        'CallBackURL' => "https://nyotahela.vercel.app/callback.php",
-        'AccountReference' => $phone,
-        'TransactionDesc' => 'Loan Service Fee'
+        'PhoneNumber' => $formattedPhone,
+        'CallBackURL' => $callbackUrl,
+        'AccountReference' => 'Nyota',
+        'TransactionDesc' => "LoanApp"
     ];
-    
-    $ch = curl_init($url . '/mpesa/stkpush/v1/processrequest');
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        'Authorization: Bearer ' . $token,
-        'Content-Type: application/json'
-    ]);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($stkPayload));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    
-    $stkResponse = json_decode(curl_exec($ch));
-    
-    if (isset($stkResponse->ResponseCode) && $stkResponse->ResponseCode == "0") {
-        updateTransaction($stkResponse->CheckoutRequestID, 'PENDING', ['phone' => $phone, 'amount' => $amount]);
-        echo json_encode([
-            'success' => true,
-            'reference' => $stkResponse->CheckoutRequestID,
-            'message' => $stkResponse->CustomerMessage
-        ]);
-    } else {
-        echo json_encode([
-            'error' => $stkResponse->errorMessage ?? 'STK Push Failed'
-        ]);
+
+    // Store CheckoutRequestID in session to match callback
+    $stkData = json_encode($stkPayload);
+
+    $ch = curl_init($stkPushUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $stkData);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: Bearer ' . $accessToken]);
+    $response = curl_exec($ch);
+    if (curl_errno($ch)) {
+        $message = urlencode("Error: " . curl_error($ch));
+        header("Location: index.php?page=status&status=error&message=$message");
+        exit;
     }
-    exit;
+    curl_close($ch);
+
+    $stkResponse = json_decode($response);
+
+    if (isset($stkResponse->ResponseCode) && $stkResponse->ResponseCode == "0") {
+        // Save CheckoutRequestID to match callback with user
+        $_SESSION['CheckoutRequestID'] = $stkResponse->CheckoutRequestID;
+        $message = urlencode($stkResponse->CustomerMessage);
+        header("Location: index.php?page=status&status=success&message=$message");
+        exit;
+    } else {
+        $errorMessage = $stkResponse->errorMessage ?? $stkResponse->ResponseDescription ?? 'An unknown error occurred.';
+        $message = urlencode("Error: " . $errorMessage);
+        header("Location: index.php?page=status&status=error&message=$message");
+        exit;
+    }
 }
 
 if ($action == 'callback') {
