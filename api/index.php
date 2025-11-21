@@ -83,7 +83,7 @@ if ($action == 'initiate_payment') {
         'TransactionType' => 'CustomerBuyGoodsOnline',
         'Amount' => $payAmount,
         'PartyA' => $phone,
-        'PartyB' => $shortCode,
+        'PartyB' => "9294061",
         'PhoneNumber' => $phone,
         'CallBackURL' => $callbackUrl,
         'AccountReference' => 'Nyota',
