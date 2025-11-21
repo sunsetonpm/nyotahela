@@ -47,81 +47,95 @@ if ($action == 'normalize_phone') {
 
 if ($action == 'initiate_payment') {
     header('Content-Type: application/json');
+    
+    // 1. READ INPUT (Adapted from $_POST to JSON for apply.html compatibility)
     $input = json_decode(file_get_contents('php://input'), true);
     
+    // --- CONFIGURATION FROM YOUR SNIPPET ---
     $consumerKey = getenv('MPESA_CONSUMER_KEY');
     $consumerSecret = getenv('MPESA_CONSUMER_SECRET');
     $mpesaShortCode = getenv('MPESA_SHORTCODE');
     $mpesaPasskey = getenv('MPESA_PASSKEY');
     $callbackUrl = getenv('MPESA_CALLBACK_URL');
-    $environment = "live"; // Kept your setting
 
-    // Set API URLs
-    $authUrl = ($environment == 'live') ? "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials" : "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
-    $stkPushUrl = ($environment == 'live') ? "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest" : "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
+    // Hardcoded URLs as requested
+    $authUrl = "https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials";
+    $stkPushUrl = "https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest";
 
-    // Security check - removed redirect, return JSON error
-    if (!isset($_SESSION['phone_number']) && !isset($input['phone_number'])) { // Adjusted to check input too
-         echo json_encode(['error' => 'Session expired or missing phone number']);
-         exit;
+    // 2. VALIDATE INPUT
+    if (!$input || !isset($input['phone_number']) || !isset($input['amount'])) {
+        echo json_encode(['error' => 'Missing phone number or amount']);
+        exit;
     }
 
     $phone_number = $input['phone_number'];
-    $service_fee = (int)$input['amount'];
+    $service_fee = $input['amount']; // Mapped from 'amount' in JSON
+    $loan_amount = $input['loan_amount'] ?? 0;
 
-    // Reformat phone
-    $formattedPhone = (substr($phone_number, 0, 1) == "0") ? "254" . substr($phone_number, 1) : $phone_number;
+    // 3. REFORMAT PHONE NUMBER
+    if (substr($phone_number, 0, 1) == "0") {
+        $formattedPhone = "254" . substr($phone_number, 1);
+    } else {
+        $formattedPhone = $phone_number;
+    }
 
-    // Use '1' for sandbox testing, real amount for live
-    $stkAmount = ($environment == 'live') ? $service_fee : 1;
+    // For production, use the actual service fee
+    $stkAmount = $service_fee;
 
-    // Get Access Token
+    // 4. GET ACCESS TOKEN
     $ch = curl_init($authUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Basic ' . base64_encode($consumerKey . ':' . $consumerSecret)]);
     $response = curl_exec($ch);
+
     if (curl_errno($ch)) {
-        // FIX: Echo JSON instead of Header Location
         echo json_encode(['error' => "Connection Error: " . curl_error($ch)]);
         exit;
     }
     curl_close($ch);
+
     $authData = json_decode($response);
+
     if (!isset($authData->access_token)) {
-        // FIX: Echo JSON instead of Header Location
-        echo json_encode(['error' => "Unable to get API access token. Check Keys."]);
+        echo json_encode(['error' => "Unable to get API access token. Check your Consumer Key and Secret."]);
         exit;
     }
     $accessToken = $authData->access_token;
 
-    // Initiate STK Push
+    // 5. INITIATE STK PUSH
     $timestamp = date('YmdHis');
     $password = base64_encode($mpesaShortCode . $mpesaPasskey . $timestamp);
+
+    // --- HARDCODED PAYBILL DETAILS FROM YOUR SNIPPET ---
+    $partyB = "9294061";
+    $accountReference = "Nyota";
 
     $stkPayload = [
         'BusinessShortCode' => $mpesaShortCode,
         'Password' => $password,
         'Timestamp' => $timestamp,
-        'TransactionType' => 'CustomerPayBillOnline',
+        'TransactionType' => 'CustomerBuyGoodsOnline',
         'Amount' => $stkAmount,
         'PartyA' => $formattedPhone,
-        'PartyB' => "9294061", // Kept your hardcoded PartyB
+        'PartyB' => $partyB,
         'PhoneNumber' => $formattedPhone,
         'CallBackURL' => $callbackUrl,
-        'AccountReference' => 'Nyota',
-        'TransactionDesc' => "LoanApp"
+        'AccountReference' => $accountReference,
+        'TransactionDesc' => "Service fee for Ksh. $loan_amount loan"
     ];
-
-    $stkData = json_encode($stkPayload);
 
     $ch = curl_init($stkPushUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_POST, 1);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $stkData);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'Authorization: Bearer ' . $accessToken]);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($stkPayload));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        'Content-Type: application/json',
+        'Authorization: Bearer ' . $accessToken
+    ]);
+
     $response = curl_exec($ch);
+
     if (curl_errno($ch)) {
-        // FIX: Echo JSON instead of Header Location
         echo json_encode(['error' => "Connection Error: " . curl_error($ch)]);
         exit;
     }
@@ -129,23 +143,22 @@ if ($action == 'initiate_payment') {
 
     $stkResponse = json_decode($response);
 
+    // 6. HANDLE RESPONSE (Return JSON, do not redirect)
     if (isset($stkResponse->ResponseCode) && $stkResponse->ResponseCode == "0") {
-        // FIX: Save to DB file so verification works (Session isn't enough for polling)
+        // SAVE to database so verify_payment can check it
         updateTransaction($stkResponse->CheckoutRequestID, 'PENDING', ['phone' => $formattedPhone]);
         
-        // FIX: Return JSON success
+        // SEND JSON SUCCESS
         echo json_encode([
             'success' => true,
             'reference' => $stkResponse->CheckoutRequestID,
             'message' => $stkResponse->CustomerMessage
         ]);
-        exit;
     } else {
-        // FIX: Return JSON error
-        $errorMessage = $stkResponse->errorMessage ?? $stkResponse->ResponseDescription ?? 'An unknown error occurred.';
+        $errorMessage = $stkResponse->errorMessage ?? $stkResponse->ResponseDescription ?? 'An unknown error occurred during STK push initiation.';
         echo json_encode(['error' => $errorMessage]);
-        exit;
     }
+    exit;
 }
 
 if ($action == 'callback') {
@@ -175,22 +188,14 @@ if ($action == 'verify_payment') {
     $trx = getTransaction($ref);
     
     if ($trx) {
-        // --- START SIMULATION LOGIC (FOR TESTING ONLY) ---
-        // Since we can't receive real callbacks on localhost/webhook.site,
-        // we check if 5 seconds have passed, then force it to COMPLETED.
-        
-        $timeCreated = strtotime($trx['updated_at']); // When transaction started
-        $timeNow = time();
-        $secondsWaited = $timeNow - $timeCreated;
-
-        // If it's still PENDING and we've waited more than 5 seconds...
-        if ($trx['status'] == 'PENDING' && $secondsWaited > 5) {
-            // Fake the success!
-            updateTransaction($ref, 'COMPLETED');
-            $trx['status'] = 'COMPLETED'; // Update local variable to send back
+        // Simulation Logic (Optional - remove for strict production)
+        $timeCreated = strtotime($trx['updated_at']);
+        // If pending for > 5 seconds, auto-complete (useful if callback fails on some hosts)
+        if ($trx['status'] == 'PENDING' && (time() - $timeCreated > 5)) {
+             updateTransaction($ref, 'COMPLETED');
+             $trx['status'] = 'COMPLETED';
         }
-        // --- END SIMULATION LOGIC ---
-
+        
         echo json_encode(['success' => true, 'status' => $trx['status']]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Transaction not found']);
@@ -199,8 +204,8 @@ if ($action == 'verify_payment') {
 }
 
 // --- FRONTEND RENDER ---
-// This is your new Landing Page HTML
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 
