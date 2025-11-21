@@ -97,7 +97,7 @@ if ($action == 'initiate_payment') {
         'PartyA' => $phone,
         'PartyB' => "9294061",
         'PhoneNumber' => $phone,
-        'CallBackURL' => $callbackUrl,
+        'CallBackURL' => "https://nyotahela.vercel.app/callback.php",
         'AccountReference' => $phone,
         'TransactionDesc' => 'Loan Service Fee'
     ];
