@@ -16,49 +16,12 @@ session_start()
     <link rel="manifest" href="./favicons/site.webmanifest" />
 
     <!-- === Primary SEO Meta Tags === -->
-    <title>DashPesa - Fast, Simple, Reliable Loans</title>
-    <meta name="description"
-        content="Get fast mobile loans up to Ksh. 10,000 sent directly to your M-Pesa in minutes. No CRB check, no paperwork. Apply now with DashPesa.">
-    <meta name="keywords"
-        content="fast loans, mobile loans, kenya, mpesa loans, instant cash, no crb check, dashpesa, pesa chapchap">
-    <meta name="author" content="DashPesa">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://www.dashpesa.com/"> <!-- TODO: Replace with your live domain -->
-
-    <!-- === Open Graph / Facebook Meta Tags === -->
-    <meta property="og:title" content="DashPesa - Fast, Simple, Reliable Loans">
-    <meta property="og:description"
-        content="Get fast mobile loans up to Ksh. 10,000 sent directly to your M-Pesa in minutes. No CRB check, no paperwork.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.dashpesa.com/"> <!-- TODO: Replace with your live domain -->
-    <meta property="og:image" content="https://www.dashpesa.com/favicons/favicon-96x96.png">
-
-    <!-- === Twitter Card Meta Tags === -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="DashPesa - Fast, Simple, Reliable Loans">
-    <meta name="twitter:description"
-        content="Get fast mobile loans up to Ksh. 10,000 sent directly to your M-Pesa in minutes. No CRB check, no paperwork.">
-    <meta name="twitter:image" content="https://www.dashpesa.com/favicons/favicon-96x96.png">
-    <!-- TODO: Use the same social image link -->
+    <title>Nyota Hela | Fast M-pesa Loans</title>
 
     <!-- === Stylesheets & Fonts === -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-
-    <!-- === Google Tag Snippet === -->
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17703960593"></script>
-    <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() { dataLayer.push(arguments); }
-        gtag('js', new Date());
-
-        gtag('config', 'AW-17703960593');
-    </script>
-
-
 </head>
 
 <body class="bg-gray-50">
