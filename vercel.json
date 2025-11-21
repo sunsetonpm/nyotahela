@@ -7,13 +7,9 @@
   "routes": [
     { "src": "/eligibility", "dest": "/eligibility.html" },
     { "src": "/apply", "dest": "/apply.html" },
-    
+    { "src": "/(.*)", "dest": "/index.html" },
     { "handle": "filesystem" },
     
-    { "src": "/verify", "dest": "/api/verify-payment.php" },
-    { "src": "/pay", "dest": "/api/initiate-payment.php" },
-    { "src": "/normalizephone", "dest": "/api/normalize-phone.php" },
-    { "src": "/callback", "dest": "/api/callback.php" },
-    { "src": "/(.*)", "dest": "/api/index.php" }
+    { "src": "/callback", "dest": "/api/stk_initiate.php" }
   ]
 }
