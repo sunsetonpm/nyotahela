@@ -6,8 +6,8 @@
   },
   "routes": [
     { "src": "/(.*)", "dest": "/api/verify-payment.php" },
-    { "src": "/(.*)", "dest": "/api/normalize-phone.php" },
     { "src": "/(.*)", "dest": "/api/initiate-payment.php" },
+    { "src": "/(.*)", "dest": "/api/normalize-phone.php" },
     { "src": "/(.*)", "dest": "/api/callback.php" },
     { "src": "/(.*)", "dest": "/api/index.php" }
   ]
