@@ -5,6 +5,11 @@
     }
   },
   "routes": [
+    { "src": "/eligibility", "dest": "/eligibility.html" },
+    { "src": "/apply", "dest": "/apply.html" },
+    
+    { "handle": "filesystem" },
+    
     { "src": "/verify", "dest": "/api/verify-payment.php" },
     { "src": "/pay", "dest": "/api/initiate-payment.php" },
     { "src": "/normalizephone", "dest": "/api/normalize-phone.php" },
