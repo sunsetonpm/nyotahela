@@ -7,9 +7,9 @@
   "routes": [
     { "src": "/eligibility", "dest": "/eligibility.html" },
     { "src": "/apply", "dest": "/apply.html" },
-    { "src": "/(.*)", "dest": "/index.html" },
     { "handle": "filesystem" },
     
-    { "src": "/callback", "dest": "/api/stk_initiate.php" }
+    { "src": "/callback", "dest": "/api/stk_initiate.php" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
