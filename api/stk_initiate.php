@@ -24,7 +24,7 @@ $amount = (int) $data->amount;
 $phone = $data->phone;
 
 // 1. Format Phone to 2547...
-$phone = preg_replace("/^(?:254|\+254|0)?((?:1|7)[0-9]{8})$/", "254$1", $phone);
+// $phone = preg_replace("/^(?:254|\+254|0)?((?:1|7)[0-9]{8})$/", "254$1", $phone);
 
 // 2. Generate Access Token
 $headers = ['Content-Type:application/json; charset=utf8'];
