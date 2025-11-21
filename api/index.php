@@ -45,7 +45,7 @@ if ($action == 'normalize_phone') {
     exit;
 }
 
-if ($action == 'initiate_payment') {
+if ($action == 'initiate_payment' && $_SERVER["REQUEST_METHOD"] == "POST") {
     header('Content-Type: application/json');
     $input = json_decode(file_get_contents('php://input'), true);
     
