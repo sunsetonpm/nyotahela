@@ -5,6 +5,8 @@
     }
   },
   "routes": [
+    { "src": "/eligibility", "dest": "/api/eligibility.html" },
+    { "src": "/apply", "dest": "/api/apply.html" },
     { "src": "/(.*)",  "dest": "/api/index.php" }
   ]
 }
