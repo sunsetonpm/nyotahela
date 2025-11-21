@@ -55,14 +55,7 @@ if ($action == 'initiate_payment') {
     $shortCode = $_ENV['MPESA_SHORTCODE'] ?? getenv('MPESA_SHORTCODE');
     $passkey = $_ENV['MPESA_PASSKEY'] ?? getenv('MPESA_PASSKEY');
     $env = $_ENV['MPESA_ENVIRONMENT'] ?? getenv('MPESA_ENVIRONMENT');
-    
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-    $host = $_SERVER['HTTP_HOST'];
-    $callbackUrl = "$protocol://$host" . strtok($_SERVER["REQUEST_URI"], '?') . "?action=callback";
-    
-    if (!empty($_ENV['MPESA_CALLBACK_URL'])) {
-        $callbackUrl = $_ENV['MPESA_CALLBACK_URL'];
-    }
+    $callbackUrl = $_ENV['MPESA_CALLBACK_URL'] ?? getenv('MPESA_CALLBACK_URL');
 
     $url = ($env == 'live') ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
     
