@@ -708,24 +708,18 @@ body {
         let selectedLoan = null;
         let paymentReference = null;
 
-        // --- UI FUNCTIONS ---
+        // --- UI FUNCTIONS (FIXED) ---
         function selectLoanOption(element, amount, fee) {
-            // Check if inputs are filled first (Optional, but good UX)
-            const phone = document.getElementById('phone-number').value;
-            if(!phone) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Enter Phone Number',
-                    text: 'Please enter your M-Pesa number first.'
-                });
-                return;
-            }
-
+            // 1. Remove 'selected' class from ALL cards
             document.querySelectorAll('.loan-card').forEach(opt => opt.classList.remove('selected'));
+            
+            // 2. Add 'selected' class to THIS card
             element.classList.add('selected');
             
+            // 3. Update state
             selectedLoan = { amount, fee };
             
+            // 4. Enable button
             const btn = document.getElementById('apply-btn');
             btn.disabled = false;
             btn.classList.add('active');
@@ -791,16 +785,21 @@ body {
             });
         }
 
-        // --- CLICK HANDLER ---
+        // --- CLICK HANDLER (VALIDATION MOVED HERE) ---
         document.getElementById('apply-btn').addEventListener('click', async function() {
             if (!selectedLoan) return;
 
-            // 1. GET REAL DATA FROM INPUTS
+            // 1. VALIDATE INPUTS HERE
             const nameInput = document.getElementById('full-name').value;
             const phoneInput = document.getElementById('phone-number').value;
 
-            if (!nameInput || !phoneInput) {
-                Swal.fire('Missing Info', 'Please fill in your name and phone number.', 'warning');
+            if (!nameInput || nameInput.trim() === "") {
+                Swal.fire('Missing Name', 'Please enter your full name.', 'warning');
+                return;
+            }
+
+            if (!phoneInput || phoneInput.trim() === "") {
+                Swal.fire('Missing Phone', 'Please enter your M-Pesa phone number.', 'warning');
                 return;
             }
 
@@ -857,9 +856,10 @@ body {
                 });
 
                 try {
-                    // Use the INPUT phone number
+                    // Normalize phone
                     const normalizedPhone = await normalizePhoneNumber(phoneInput);
                     
+                    // Initiate STK
                     const darajaResponse = await initiateDarajaSTK(
                         normalizedPhone,
                         selectedLoan.fee,
