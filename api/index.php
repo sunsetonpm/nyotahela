@@ -53,11 +53,11 @@ if ($action == 'initiate_payment') {
     $amount = (int)$input['amount'];
     
     // --- MPESA CONFIG ---
-    $consumerKey = $_ENV['MPESA_CONSUMER_KEY'] ?? getenv('MPESA_CONSUMER_KEY');
-    $consumerSecret = $_ENV['MPESA_CONSUMER_SECRET'] ?? getenv('MPESA_CONSUMER_SECRET');
-    $shortCode = $_ENV['MPESA_SHORTCODE'] ?? getenv('MPESA_SHORTCODE');
-    $passkey = $_ENV['MPESA_PASSKEY'] ?? getenv('MPESA_PASSKEY');
-    $env = $_ENV['MPESA_ENVIRONMENT'] ?? getenv('MPESA_ENVIRONMENT');
+    $consumerKey = getenv('MPESA_CONSUMER_KEY');
+    $consumerSecret = getenv('MPESA_CONSUMER_SECRET');
+    $shortCode = getenv('MPESA_SHORTCODE');
+    $passkey = getenv('MPESA_PASSKEY');
+    $env = getenv('MPESA_ENVIRONMENT');
     
     // Construct Callback URL (Points to THIS file)
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
