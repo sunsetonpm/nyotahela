@@ -55,7 +55,7 @@ if ($action == 'initiate_payment') {
     $shortCode = $_ENV['MPESA_SHORTCODE'] ?? getenv('MPESA_SHORTCODE');
     $passkey = $_ENV['MPESA_PASSKEY'] ?? getenv('MPESA_PASSKEY');
     $env = $_ENV['MPESA_ENVIRONMENT'] ?? getenv('MPESA_ENVIRONMENT');
-    $callbackUrl = $_ENV['MPESA_CALLBACK_URL'] ?? getenv('MPESA_CALLBACK_URL');
+    $callbackUrl = getenv('MPESA_CALLBACK_URL');
 
     $url = ($env == 'live') ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
     
