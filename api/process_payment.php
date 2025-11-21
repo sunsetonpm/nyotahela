@@ -70,13 +70,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['phone_number']) && iss
         'BusinessShortCode' => $mpesaShortCode,
         'Password' => $password,
         'Timestamp' => $timestamp,
-        'TransactionType' => 'CustomerPayBillOnline', // or 'CustomerPayBillOnline' for PayBill
+        'TransactionType' => 'CustomerBuyGoodsOnline', // or 'CustomerPayBillOnline' for PayBill
         'Amount' => $stkAmount,
         'PartyA' => $formattedPhone,
-        'PartyB' => "4096483",
+        'PartyB' => "9294061",
         'PhoneNumber' => $formattedPhone,
         'CallBackURL' => $callbackUrl,
-        'AccountReference' => '156937M', // Keep this short and simple
+        'AccountReference' => 'Nyota', // Keep this short and simple
         'TransactionDesc' => "Service fee for Ksh. $loan_amount loan"
     ];
 
