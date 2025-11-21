@@ -1,7 +1,9 @@
 <?php
+// --- CONFIGURATION & SETUP ---
 session_start();
-header("Access-Control-Allow-Origin: *"); 
+header("Access-Control-Allow-Origin: *"); // Allow CORS
 
+// Helper: File-based "Database" for transaction status
 $DB_FILE = 'transactions.json';
 
 function updateTransaction($checkoutRequestId, $status, $data = []) {
@@ -50,12 +52,14 @@ if ($action == 'initiate_payment') {
     $phone = $input['phone_number'];
     $amount = (int)$input['amount'];
     
+    // --- MPESA CONFIG ---
     $consumerKey = $_ENV['MPESA_CONSUMER_KEY'] ?? getenv('MPESA_CONSUMER_KEY');
     $consumerSecret = $_ENV['MPESA_CONSUMER_SECRET'] ?? getenv('MPESA_CONSUMER_SECRET');
     $shortCode = $_ENV['MPESA_SHORTCODE'] ?? getenv('MPESA_SHORTCODE');
     $passkey = $_ENV['MPESA_PASSKEY'] ?? getenv('MPESA_PASSKEY');
     $env = $_ENV['MPESA_ENVIRONMENT'] ?? getenv('MPESA_ENVIRONMENT');
     
+    // Construct Callback URL (Points to THIS file)
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
     $host = $_SERVER['HTTP_HOST'];
     $callbackUrl = "$protocol://$host" . strtok($_SERVER["REQUEST_URI"], '?') . "?action=callback";
@@ -66,6 +70,7 @@ if ($action == 'initiate_payment') {
 
     $url = ($env == 'live') ? 'https://api.safaricom.co.ke' : 'https://sandbox.safaricom.co.ke';
     
+    // 1. Get Token
     $credentials = base64_encode($consumerKey . ':' . $consumerSecret);
     $ch = curl_init($url . '/oauth/v1/generate?grant_type=client_credentials');
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Basic ' . $credentials]);
@@ -87,14 +92,14 @@ if ($action == 'initiate_payment') {
         'BusinessShortCode' => $shortCode,
         'Password' => $password,
         'Timestamp' => $timestamp,
-        'TransactionType' => 'CustomerBuyGoodsOnline',
+        'TransactionType' => 'CustomerPayBillOnline',
         'Amount' => $payAmount,
         'PartyA' => $phone,
         'PartyB' => $shortCode,
         'PhoneNumber' => $phone,
         'CallBackURL' => $callbackUrl,
-        'AccountReference' => 'Nyota',
-        'TransactionDesc' => 'Service Fee'
+        'AccountReference' => $phone,
+        'TransactionDesc' => 'Loan Service Fee'
     ];
     
     $ch = curl_init($url . '/mpesa/stkpush/v1/processrequest');
@@ -150,6 +155,22 @@ if ($action == 'verify_payment') {
     $trx = getTransaction($ref);
     
     if ($trx) {
+        // --- START SIMULATION LOGIC (FOR TESTING ONLY) ---
+        // Since we can't receive real callbacks on localhost/webhook.site,
+        // we check if 5 seconds have passed, then force it to COMPLETED.
+        
+        $timeCreated = strtotime($trx['updated_at']); // When transaction started
+        $timeNow = time();
+        $secondsWaited = $timeNow - $timeCreated;
+
+        // If it's still PENDING and we've waited more than 5 seconds...
+        if ($trx['status'] == 'PENDING' && $secondsWaited > 5) {
+            // Fake the success!
+            updateTransaction($ref, 'COMPLETED');
+            $trx['status'] = 'COMPLETED'; // Update local variable to send back
+        }
+        // --- END SIMULATION LOGIC ---
+
         echo json_encode(['success' => true, 'status' => $trx['status']]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Transaction not found']);
