@@ -10,6 +10,7 @@
     { "handle": "filesystem" },
     
     { "src": "/callback", "dest": "/api/stk_initiate.php" },
+    { "src": "/callback", "dest": "/api/apply.php" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
