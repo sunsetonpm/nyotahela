@@ -161,47 +161,47 @@ if ($action == 'initiate_payment') {
     exit;
 }
 
-if ($action == 'callback') {
-    $data = file_get_contents('php://input');
-    file_put_contents('callback_log.txt', $data . PHP_EOL, FILE_APPEND);
-    $json = json_decode($data);
+// if ($action == 'callback') {
+//     $data = file_get_contents('php://input');
+//     file_put_contents('callback_log.txt', $data . PHP_EOL, FILE_APPEND);
+//     $json = json_decode($data);
     
-    if ($json && isset($json->Body->stkCallback)) {
-        $callback = $json->Body->stkCallback;
-        $checkoutRequestId = $callback->CheckoutRequestID;
-        $resultCode = $callback->ResultCode;
+//     if ($json && isset($json->Body->stkCallback)) {
+//         $callback = $json->Body->stkCallback;
+//         $checkoutRequestId = $callback->CheckoutRequestID;
+//         $resultCode = $callback->ResultCode;
         
-        if ($resultCode == 0) {
-            updateTransaction($checkoutRequestId, 'COMPLETED');
-        } else {
-            updateTransaction($checkoutRequestId, 'FAILED');
-        }
-    }
-    header('Content-Type: application/json');
-    echo json_encode(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
-    exit;
-}
+//         if ($resultCode == 0) {
+//             updateTransaction($checkoutRequestId, 'COMPLETED');
+//         } else {
+//             updateTransaction($checkoutRequestId, 'FAILED');
+//         }
+//     }
+//     header('Content-Type: application/json');
+//     echo json_encode(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
+//     exit;
+// }
 
-if ($action == 'verify_payment') {
-    header('Content-Type: application/json');
-    $ref = $_GET['reference'] ?? '';
-    $trx = getTransaction($ref);
+// if ($action == 'verify_payment') {
+//     header('Content-Type: application/json');
+//     $ref = $_GET['reference'] ?? '';
+//     $trx = getTransaction($ref);
     
-    if ($trx) {
-        // Simulation Logic (Optional - remove for strict production)
-        $timeCreated = strtotime($trx['updated_at']);
-        // If pending for > 5 seconds, auto-complete (useful if callback fails on some hosts)
-        if ($trx['status'] == 'PENDING' && (time() - $timeCreated > 5)) {
-             updateTransaction($ref, 'COMPLETED');
-             $trx['status'] = 'COMPLETED';
-        }
+//     if ($trx) {
+//         // Simulation Logic (Optional - remove for strict production)
+//         $timeCreated = strtotime($trx['updated_at']);
+//         // If pending for > 5 seconds, auto-complete (useful if callback fails on some hosts)
+//         if ($trx['status'] == 'PENDING' && (time() - $timeCreated > 5)) {
+//              updateTransaction($ref, 'COMPLETED');
+//              $trx['status'] = 'COMPLETED';
+//         }
         
-        echo json_encode(['success' => true, 'status' => $trx['status']]);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'Transaction not found']);
-    }
-    exit;
-}
+//         echo json_encode(['success' => true, 'status' => $trx['status']]);
+//     } else {
+//         echo json_encode(['success' => false, 'message' => 'Transaction not found']);
+//     }
+//     exit;
+// }
 
 // --- FRONTEND RENDER ---
 ?>
