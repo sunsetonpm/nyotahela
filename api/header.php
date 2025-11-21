@@ -15,10 +15,8 @@ session_start()
     <link rel="apple-touch-icon" sizes="180x180" href="./favicons/apple-touch-icon.png" />
     <link rel="manifest" href="./favicons/site.webmanifest" />
 
-    <!-- === Primary SEO Meta Tags === -->
     <title>Nyota Hela | Fast M-pesa Loans</title>
 
-    <!-- === Stylesheets & Fonts === -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -31,7 +29,7 @@ session_start()
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
             <!-- Logo -->
             <a href="index.php" class="text-3xl font-extrabold text-blue-700">
-                DashPesa
+                Nyota Hela
             </a>
 
             <!-- Desktop Navigation Links -->

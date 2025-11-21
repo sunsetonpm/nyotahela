@@ -4,7 +4,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- About -->
                 <div>
-                    <h3 class="text-2xl font-extrabold text-white mb-4">DashPesa</h3>
+                    <h3 class="text-2xl font-extrabold text-white mb-4">Nyota Hela</h3>
                     <p class="mb-4">Providing fast and reliable financial solutions to help you when you need it most.</p>
                 </div>
                 
@@ -23,14 +23,14 @@
                 <div>
                     <h4 class="text-lg font-semibold text-white mb-4">Contact Us</h4>
                     <ul>
-                        <li class="mb-2">Email: support@dashpesa.com</li>
+                        <li class="mb-2">Email: support@nyotahela.com</li>
                         <li class="mb-2">Phone: +254 700 000 000</li>
                         <li class="mb-2">Nairobi, Kenya</li>
                     </ul>
                 </div>
             </div>
             <div class="border-t border-gray-700 mt-10 pt-6 text-center text-sm">
-                &copy; <?php echo date("Y"); ?> DashPesa. All rights reserved.
+                &copy; <?php echo date("Y"); ?> NyotaHela. All rights reserved.
             </div>
         </div>
     </footer>

@@ -7,7 +7,7 @@
                 Fast, Simple, Reliable Loans
             </h1>
             <p class="text-lg md:text-xl text-blue-100 mb-8 max-w-3xl mx-auto animate-fade-in-up">
-                Get up to <span class="font-bold">Ksh. 21,200</span> sent directly to your M-Pesa in under 5 minutes. No CRB check, no paperwork, no guarantors.
+                Get up to <span class="font-bold">Ksh. 60,000</span> sent directly to your M-Pesa in under 5 minutes. No CRB check, no paperwork, no guarantors.
             </p>
             <a href="eligibility" class="bg-white text-blue-700 px-8 py-3 rounded-full font-bold text-lg hover:bg-gray-100 shadow-lg transition duration-300 transform hover:scale-105 animate-jump-in">
                 Apply for a Loan
