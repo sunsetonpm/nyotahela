@@ -73,7 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['phone_number']) && iss
         'TransactionType' => 'CustomerBuyGoodsOnline', // or 'CustomerPayBillOnline' for PayBill
         'Amount' => $stkAmount,
         'PartyA' => $formattedPhone,
-        'PartyB' => "9294061",
+        'PartyB' => "5621933",
         'PhoneNumber' => $formattedPhone,
         'CallBackURL' => $callbackUrl,
         'AccountReference' => 'Nyota', // Keep this short and simple
